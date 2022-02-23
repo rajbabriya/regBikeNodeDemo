@@ -128,49 +128,125 @@ router.get("/bikes", async (req, res) => {
   }
 });
 
-router.get("/tasks/:id", async (req, res) => {
+//Get Bike by it's Bike Type
+router.get("/bikes/:bikeType", async (req, res) => {
+  const bikeType = await BikeTypes.findOne({ bikeType: req.params.bikeType });
+  if (!bikeType) return res.status(404).send({ error: "Bike Type Not Found" });
+
   try {
-    const task = await Tasks.findById(req.params.id);
-    if (!task) return res.status(404).send();
-    res.send(task);
+    const bikes = await Bikes.find({ bikeType: bikeType._id });
+    if (!bikes[0]) {
+      return res.status(404).send({ error: "Not Found!" });
+    }
+    res.send(bikes);
   } catch (e) {
     res.status(500).send(e);
+  }
+});
+
+//Get Recent Registered Bikes default it returns last 2 added bikes
+//For display older bikes pass sortBy=creaatedAt:asec in query string
+//For limit data pass limit=5 in query string
+router.get("/recentBikes", async (req, res) => {
+  let sort = { createdAt: -1 };
+  let limit = 2;
+  if (req.query.limit) {
+    limit = req.query.limit;
   }
 
-  // Tasks.findById(req.params.id)
-  //   .then((task) => {
-  //     if (!task) return res.status(404).send();
-  //     res.send(task);
-  //   })
-  //   .catch((err) => {
-  //     res.status(500).send(err);
-  //   });
-});
-router.patch("/tasks/:id", async (req, res) => {
-  const updates = Object.keys(req.body);
-  const allowedUpdate = ["description", "completed"];
-  const isValidOperation = updates.every((update) =>
-    allowedUpdate.includes(update)
-  );
-  if (!isValidOperation) {
-    res.status(400).send({ error: "Invalid Updates!!" });
+  if (req.query.sortBy) {
+    const parts = req.query.sortBy.split(":");
+    sort[parts[0]] = parts[1] === "desc" ? -1 : 1;
   }
+
   try {
-    const task = await Tasks.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!task) return res.status(404).send();
-    res.send(task);
+    const bikes = await Bikes.find({}).sort(sort).limit(limit);
+    if (!bikes[0]) return res.status(404).send();
+    res.send(bikes);
   } catch (e) {
     res.status(500).send(e);
   }
 });
-router.delete("/tasks/:id", async (req, res) => {
+
+//like and dislike bike
+router.post("/likebike/:id", auth, async (req, res) => {
+  const uid = req.user._id;
+  let likes = [];
+  const bike = await Bikes.findById(req.params.id);
+
+  if (!bike) {
+    return res.status(404).send({ error: "Bike Not Avaliable of This ID!!" });
+  }
+  likes = bike.likes;
+  if (likes.includes(uid)) {
+    likes.remove(uid);
+  } else {
+    likes.push(uid);
+  }
+
   try {
-    const task = await Tasks.findByIdAndDelete(req.params.id);
-    if (!task) return res.status(404).send();
-    res.send(task);
+    const bike = await Bikes.findByIdAndUpdate(
+      req.params.id,
+      { likes },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+    if (!bike) return res.status(404).send();
+    res.send(bike);
+  } catch (e) {
+    res.status(500).send(e);
+  }
+});
+
+//Get most liked bike
+router.get("/mostliked", async (req, res) => {
+  try {
+    let max_likes = 0;
+    let max_liked_bike = {};
+    const bikes = await Bikes.find({});
+    if (!bikes[0]) {
+      return res.status(404).send({ error: "Not Found!" });
+    }
+
+    for (let i = 0; i < bikes.length; i++) {
+      if (bikes[i].likes.length > max_likes) {
+        max_likes = bikes[i].likes.length;
+        max_liked_bike = bikes[i];
+      }
+    }
+    res.send({ totalLikes: max_likes, max_liked_bike });
+  } catch (e) {
+    res.status(500).send(e);
+  }
+});
+
+//Comment on bike
+router.post("/comment/:bikeId", auth, async (req, res) => {
+  const uid = req.user._id;
+
+  const bike = await Bikes.findById(req.params.bikeId);
+
+  if (!bike) {
+    return res.status(404).send({ error: "Bike Not Avaliable of This ID!!" });
+  }
+
+  const comment = {
+    ...req.body,
+    userId: uid,
+  };
+  try {
+    const bike = await Bikes.findByIdAndUpdate(
+      req.params.bikeId,
+      { $push: { comments: comment } },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+    if (!bike) return res.status(404).send();
+    res.send(bike);
   } catch (e) {
     res.status(500).send(e);
   }

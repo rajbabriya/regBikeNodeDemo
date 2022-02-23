@@ -47,7 +47,7 @@ const bikeSchema = new mongoose.Schema(
                 type: String,
               },
             },
-            { timestamps: true }
+            { timestamps: { updatedAt: false } }
           ),
         },
       ],
