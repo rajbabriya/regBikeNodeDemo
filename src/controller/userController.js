@@ -1,6 +1,12 @@
 const User = require("../models/user");
 
 exports.createUser = async (req, res) => {
+  const email = req.body.email;
+  const foundedUser = await User.findOne({ email });
+
+  if (foundedUser)
+    return res.status(406).send({ message: "Email Already Exist!!" });
+
   const user = new User(req.body);
 
   try {
@@ -15,13 +21,14 @@ exports.login = async (req, res) => {
   try {
     const user = await User.findByCredentials(
       req.body.email,
-      req.body.password
+      req.body.password,
+      res
     );
+
     const token = await user.generateAuthToken();
     res.send({ user, token });
   } catch (e) {
-    res.status(400).send(e);
-    console.log(e);
+    res.status(500).send(e);
   }
 };
 

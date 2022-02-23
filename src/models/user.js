@@ -60,17 +60,17 @@ userSchema.methods.generateAuthToken = async function () {
   return token;
 };
 
-userSchema.statics.findByCredentials = async (email, password) => {
+userSchema.statics.findByCredentials = async (email, password, res) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new Error("Email not found!!");
+    return res.status(404).send({ message: "Email doesn't Exist!!" });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new Error("Password doesn't match!!");
+    return res.status(401).send({ message: "Password doesn't match!!" });
   }
 
   return user;
