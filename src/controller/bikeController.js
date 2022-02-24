@@ -3,6 +3,9 @@ const BikeTypes = require("../models/biketype");
 
 exports.createBikeType = async (req, res) => {
   const uid = req.user._id;
+  if (!req.body.bikeType) {
+    return res.status(400).send({ message: "Field bikeType required!" });
+  }
   const bikeType = new BikeTypes({ ...req.body, createdBy: uid });
 
   try {
@@ -27,6 +30,22 @@ exports.getBikeTypes = async (req, res) => {
 
 exports.createBike = async (req, res) => {
   const uid = req.user._id;
+  if (!req.body.bikeType) {
+    return res.status(400).send({ message: "Field bikeType required!" });
+  }
+  if (!req.body.bikeName) {
+    return res.status(400).send({ message: "Field bikeName required!" });
+  }
+  if (!req.body.price) {
+    return res.status(400).send({ message: "Field price required!" });
+  }
+  if (!req.body.engine) {
+    return res.status(400).send({ message: "Field engine required!" });
+  }
+  if (!req.body.milage) {
+    return res.status(400).send({ message: "Field milage required!" });
+  }
+
   const bikeType = await BikeTypes.findOne({
     bikeType: req.body.bikeType,
   });
@@ -144,7 +163,7 @@ exports.getRecentBikes = async (req, res) => {
 
   try {
     const bikes = await Bikes.find({}).sort(sort).limit(limit);
-    if (!bikes[0]) return res.status(404).send();
+    if (!bikes[0]) return res.status(404).send({ message: "Data Not Found!" });
     res.send(bikes);
   } catch (e) {
     res.status(500).send(e);
@@ -205,7 +224,9 @@ exports.mostlyLiked = async (req, res) => {
 
 exports.comment = async (req, res) => {
   const uid = req.user._id;
-
+  if (!req.body.comment_text) {
+    return res.status(400).send({ message: "Field comment_text required!" });
+  }
   const bike = await Bikes.findById(req.params.bikeId);
 
   if (!bike) {

@@ -1,6 +1,15 @@
 const User = require("../models/user");
 
 exports.createUser = async (req, res) => {
+  if (!req.body.name) {
+    return res.status(400).send({ message: "Field name required!" });
+  }
+  if (!req.body.email) {
+    return res.status(400).send({ message: "Field email required!" });
+  }
+  if (!req.body.password) {
+    return res.status(400).send({ message: "Field password required!" });
+  }
   const email = req.body.email;
   const foundedUser = await User.findOne({ email });
 
@@ -18,6 +27,12 @@ exports.createUser = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
+  if (!req.body.email) {
+    return res.status(400).send({ message: "Field email required!" });
+  }
+  if (!req.body.password) {
+    return res.status(400).send({ message: "Field password required!" });
+  }
   try {
     const user = await User.findByCredentials(
       req.body.email,
@@ -25,8 +40,10 @@ exports.login = async (req, res) => {
       res
     );
 
-    const token = await user.generateAuthToken();
-    res.send({ user, token });
+    if (user._id) {
+      const token = await user.generateAuthToken();
+      res.send({ user, token });
+    }
   } catch (e) {
     res.status(500).send(e);
   }
